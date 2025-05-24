@@ -167,8 +167,7 @@ app.get('/', (req, res) => {
       '/api/records/count',
       '/api/records',
       '/api/institutes',
-      '/api/programs',
-      '/api/search'
+      '/api/programs'
     ]
   });
 });
@@ -217,51 +216,83 @@ app.get('/api/search', async (req, res) => {
       await initData();
     }
     
-    let results = [...records];
-    
-    // Filter by various parameters if provided
-    if (req.query.institute) {
-      results = results.filter(r => r.Institute && r.Institute.toLowerCase().includes(req.query.institute.toLowerCase()));
+    // Explicitly parse integer query parameters
+    const resver = req.query.resver || 'O';
+    const gend = req.query.gend || 'M';
+    const stid = req.query.stid !== undefined ? parseInt(req.query.stid) : 0;
+    const adv = req.query.adv !== undefined ? parseInt(req.query.adv) : 1;
+    const tolaran = req.query.tolaran !== undefined ? parseInt(req.query.tolaran) : 5;
+    const value = req.query.value;
+
+    if (!resver || !gend || isNaN(stid) || isNaN(adv) || isNaN(tolaran) || !value) {
+      return res.status(400).json({ error: 'Please provide valid query parameters.' });
+    }
+
+    let valuerange = parseInt(value);
+    if (isNaN(valuerange)) {
+      return res.status(400).json({ error: 'Value must be a number.' });
     }
     
-    if (req.query.program) {
-      results = results.filter(r => r['Academic-Program-Name'] && r['Academic-Program-Name'].toLowerCase().includes(req.query.program.toLowerCase()));
+    let valuemax; // Calculate tolerance-adjusted value
+    if (gend === "F"){
+      valuemax = parseInt(valuerange*(100-3*tolaran)/100);
+    }
+    else{
+      valuemax = parseInt(valuerange*(100-tolaran)/100);
     }
     
-    if (req.query.quota) {
-      results = results.filter(r => r.Quota === req.query.quota);
-    }
-  
-  if (req.query.gender) {
-    results = results.filter(r => r.Gender === req.query.gender);
-  }
-  
-  if (req.query.state) {
-    results = results.filter(r => r.State && r.State.toLowerCase().includes(req.query.state.toLowerCase()));
-  }
-    if (req.query.value || req.query.rank) {
-    const rank = parseInt(req.query.value || req.query.rank);
-    if (!isNaN(rank)) {
-      console.log(`Filtering by rank/value: ${rank}`);
-      results = results.filter(r => {
-        const openingRank = parseFloat(r['Opening-Rank']) || Infinity;
-        const closingRank = parseFloat(r['Closing-Rank']) || 0;
-        return rank >= openingRank && rank <= closingRank;
+    const reservations = {
+      'O':'OPEN',
+      'E': 'EWS', 
+      'ON':'OBC-NCL',
+      'SC': 'SC', 
+      'ST':'ST', 
+      'OP':'OPEN (PwD)',
+      'ONP':'OBC-NCL (PwD)',
+      'EP': 'EWS (PwD)', 
+      'SCP':'SC (PwD)',
+      'STP': 'ST (PwD)'
+    };
+    
+    const genders = {
+      'M' : 'Gender-Neutral',
+      'F' : "Female-only (including Supernumerary)"
+    };
+    
+    let results = [];
+    
+    // Filter according to the logic using the in-memory records
+    if (adv) { // Advanced institutions (IITs)
+      results = records.filter(row => {
+        return row['Type'] === 'IIT' && 
+              row['Quota'] === 'AI' &&
+              row['Seat-Type'] === reservations[resver] &&
+              (gend === 'F' || row['Gender'] === genders[gend]) &&
+              parseInt(row['Closing-Rank']) >= valuemax;
+      });
+    } else { // Other institutions
+      results = records.filter(row => {
+        const rowStateId = parseInt(row['StateId']);
+        return row['Type'] !== 'IIT' && 
+              (row['Quota'] === 'AI' || rowStateId === stid) &&
+              row['Seat-Type'] === reservations[resver] &&
+              (gend === 'F' || row['Gender'] === genders[gend]) &&
+              parseInt(row['Closing-Rank']) >= valuemax;
       });
     }
-  }
-  
-  const limit = parseInt(req.query.limit) || 100;
-  const page = parseInt(req.query.page) || 1;
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  
-  res.json({
-    total: results.length,
-    page,
-    limit,
-    data: results.slice(start, end)
-  });
+    
+    // Sort results by Closing-Rank (ascending), then Opening-Rank (ascending) for tie-breakers
+    results.sort((a, b) => {
+      const aClosing = parseInt(a['Closing-Rank']);
+      const bClosing = parseInt(b['Closing-Rank']);
+      if (aClosing !== bClosing) return aClosing - bClosing;
+      const aOpening = parseInt(a['Opening-Rank']);
+      const bOpening = parseInt(b['Opening-Rank']);
+      return aOpening - bOpening;
+    });
+    
+    // Return top 50 results
+    return res.json(results.slice(0, 50));
   } catch (error) {
     console.error('Error in search endpoint:', error);
     res.status(500).json({ 
