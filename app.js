@@ -220,15 +220,16 @@ app.get('/api/search', async (req, res) => {
     const resver = req.query.resver || 'O';
     const gend = req.query.gend || 'M';
     const stid = req.query.stid !== undefined ? parseInt(req.query.stid) : 0;
-    const adv = req.query.adv !== undefined ? parseInt(req.query.adv) : 1;
+    const adv = req.query.adv !== undefined ? parseInt(req.query.adv) : 0;
     const tolaran = req.query.tolaran !== undefined ? parseInt(req.query.tolaran) : 5;
-    const value = req.query.value;
+    const main = req.query.main;
+    const reqlen = req.query.reqlen !== undefined ? parseInt(req.query.reqlen) : 20;
 
-    if (!resver || !gend || isNaN(stid) || isNaN(adv) || isNaN(tolaran) || !value) {
+    if (!resver || !gend || isNaN(stid) || isNaN(adv) || isNaN(tolaran) || !main || isNaN(reqlen)) {
       return res.status(400).json({ error: 'Please provide valid query parameters.' });
     }
 
-    let valuerange = parseInt(value);
+    let valuerange = parseInt(main);
     if (isNaN(valuerange)) {
       return res.status(400).json({ error: 'Value must be a number.' });
     }
@@ -259,11 +260,11 @@ app.get('/api/search', async (req, res) => {
       'F' : "Female-only (including Supernumerary)"
     };
     
-    let results = [];
+    let results = {"adv": [], "mains": []};
     
     // Filter according to the logic using the in-memory records
-    if (adv) { // Advanced institutions (IITs)
-      results = records.filter(row => {
+    if (adv === 0) { // Advanced institutions (IITs)
+      results['adv'] = records.filter(row => {
         return row['Type'] === 'IIT' && 
               row['Quota'] === 'AI' &&
               row['Seat-Type'] === reservations[resver] &&
@@ -271,7 +272,7 @@ app.get('/api/search', async (req, res) => {
               parseInt(row['Closing-Rank']) >= valuemax;
       });
     } else { // Other institutions
-      results = records.filter(row => {
+      results['mains'] = records.filter(row => {
         const rowStateId = parseInt(row['StateId']);
         return row['Type'] !== 'IIT' && 
               (row['Quota'] === 'AI' || rowStateId === stid) &&
@@ -282,7 +283,7 @@ app.get('/api/search', async (req, res) => {
     }
     
     // Sort results by Closing-Rank (ascending), then Opening-Rank (ascending) for tie-breakers
-    results.sort((a, b) => {
+    results['adv'].sort((a, b) => {
       const aClosing = parseInt(a['Closing-Rank']);
       const bClosing = parseInt(b['Closing-Rank']);
       if (aClosing !== bClosing) return aClosing - bClosing;
@@ -290,9 +291,23 @@ app.get('/api/search', async (req, res) => {
       const bOpening = parseInt(b['Opening-Rank']);
       return aOpening - bOpening;
     });
-    
-    // Return top 50 results
-    return res.json(results.slice(0, 50));
+    results['mains'].sort((a, b) => {
+      const aClosing = parseInt(a['Closing-Rank']);
+      const bClosing = parseInt(b['Closing-Rank']);
+      if (aClosing !== bClosing) return aClosing - bClosing;
+      const aOpening = parseInt(a['Opening-Rank']);
+      const bOpening = parseInt(b['Opening-Rank']);
+      return aOpening - bOpening;
+    });
+    const len = Math.min(reqlen, results['adv'].length + results['mains'].length); // Limit to top results
+    if (len === 0) {
+      return res.status(404).json({ error: 'No results found for the given criteria.' });
+    }
+    // Return top results
+    return res.json({
+      adv: results['adv'].slice(0, len),
+      mains: results['mains'].slice(0, len)
+    });
   } catch (error) {
     console.error('Error in search endpoint:', error);
     res.status(500).json({ 
