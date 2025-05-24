@@ -249,17 +249,20 @@ app.get('/api/search', async (req, res) => {
       return res.status(400).json({ error: 'Please provide valid query parameters.' });
     }
 
-    let valuerange = parseInt(main);
-    if (isNaN(valuerange)) {
+    let mainrank = parseInt(main);
+    if (isNaN(mainrank)) {
       return res.status(400).json({ error: 'Value must be a number.' });
     }
     
-    let valuemax; // Calculate tolerance-adjusted value
+    let mainrankcorrected; // Calculate tolerance-adjusted value
+    let advrankcorrected ;
     if (gend === "F"){
-      valuemax = parseInt(valuerange*(100-3*tolaran)/100);
+      mainrankcorrected = parseInt(mainrank*(100-3*tolaran)/100);
+      advrankcorrected = parseInt(mainrank*(100-3*tolaran)/100);
     }
     else{
-      valuemax = parseInt(valuerange*(100-tolaran)/100);
+      mainrankcorrected = parseInt(mainrank*(100-tolaran)/100);
+      advrankcorrected = parseInt(mainrank*(100-tolaran)/100);
     }
     
     const reservations = {
@@ -289,7 +292,7 @@ app.get('/api/search', async (req, res) => {
               row['Quota'] === 'AI' &&
               row['SeatType'] === reservations[resver] &&
               (gend === 'F' || row['Gender'] === genders[gend]) &&
-              parseInt(row['ClosingRank']) >= valuemax;
+              parseInt(row['ClosingRank']) >= advrankcorrected;
       });
     }
     if(adv>2000 || adv===0)
@@ -299,7 +302,7 @@ app.get('/api/search', async (req, res) => {
               (row['Quota'] === 'AI' || rowStateId === stid) &&
               row['SeatType'] === reservations[resver] &&
               (gend === 'F' || row['Gender'] === genders[gend]) &&
-              parseInt(row['ClosingRank']) >= valuemax;
+              parseInt(row['ClosingRank']) >= mainrankcorrected;
       });}
     
     
