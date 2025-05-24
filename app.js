@@ -263,7 +263,7 @@ app.get('/api/search', async (req, res) => {
     let results = {"adv": [], "mains": []};
     
     // Filter according to the logic using the in-memory records
-    if (adv === 0) { // Advanced institutions (IITs)
+    if (adv) { // Advanced institutions (IITs)
       results['adv'] = records.filter(row => {
         return row['Type'] === 'IIT' && 
               row['Quota'] === 'AI' &&
@@ -271,16 +271,16 @@ app.get('/api/search', async (req, res) => {
               (gend === 'F' || row['Gender'] === genders[gend]) &&
               parseInt(row['Closing-Rank']) >= valuemax;
       });
-    } else { // Other institutions
-      results['mains'] = records.filter(row => {
-        const rowStateId = parseInt(row['StateId']);
-        return row['Type'] !== 'IIT' && 
-              (row['Quota'] === 'AI' || rowStateId === stid) &&
-              row['Seat-Type'] === reservations[resver] &&
-              (gend === 'F' || row['Gender'] === genders[gend]) &&
-              parseInt(row['Closing-Rank']) >= valuemax;
-      });
     }
+    results['mains'] = records.filter(row => {
+      const rowStateId = parseInt(row['StateId']);
+      return row['Type'] !== 'IIT' && 
+            (row['Quota'] === 'AI' || rowStateId === stid) &&
+            row['Seat-Type'] === reservations[resver] &&
+            (gend === 'F' || row['Gender'] === genders[gend]) &&
+            parseInt(row['Closing-Rank']) >= valuemax;
+    });
+    
     
     // Sort results by Closing-Rank (ascending), then Opening-Rank (ascending) for tie-breakers
     results['adv'].sort((a, b) => {
