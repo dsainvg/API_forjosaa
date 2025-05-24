@@ -210,6 +210,25 @@ app.get('/api/programs', ensureDataLoaded, (req, res) => {
   res.json(programs);
 });
 
+app.get('/api/check', async (req, res) => {
+  try{
+    if (!dataLoaded) {
+      await initData();
+    }
+    const id = req.query.id;
+    if (!id) {
+      return res.status(400).json({ error: 'Please provide an ID to check.' });
+    }
+    const result = records.find(r => r['Id'] === id);
+    if (!result) {
+      return res.status(404).json({ error: 'Record not found.' });
+    }
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to initialize data' });
+  }
+});
+
 app.get('/api/search', async (req, res) => {
   try {
     // Ensure data is loaded before proceeding
