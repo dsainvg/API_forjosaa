@@ -267,36 +267,36 @@ app.get('/api/search', async (req, res) => {
       results['adv'] = records.filter(row => {
         return row['Type'] === 'IIT' && 
               row['Quota'] === 'AI' &&
-              row['Seat-Type'] === reservations[resver] &&
+              row['SeatType'] === reservations[resver] &&
               (gend === 'F' || row['Gender'] === genders[gend]) &&
-              parseInt(row['Closing-Rank']) >= valuemax;
+              parseInt(row['ClosingRank']) >= valuemax;
       });
     }
     results['mains'] = records.filter(row => {
       const rowStateId = parseInt(row['StateId']);
       return row['Type'] !== 'IIT' && 
             (row['Quota'] === 'AI' || rowStateId === stid) &&
-            row['Seat-Type'] === reservations[resver] &&
+            row['SeatType'] === reservations[resver] &&
             (gend === 'F' || row['Gender'] === genders[gend]) &&
-            parseInt(row['Closing-Rank']) >= valuemax;
+            parseInt(row['ClosingRank']) >= valuemax;
     });
     
     
-    // Sort results by Closing-Rank (ascending), then Opening-Rank (ascending) for tie-breakers
+    // Sort results by ClosingRank (ascending), then OpeningRank (ascending) for tiebreakers
     results['adv'].sort((a, b) => {
-      const aClosing = parseInt(a['Closing-Rank']);
-      const bClosing = parseInt(b['Closing-Rank']);
+      const aClosing = parseInt(a['ClosingRank']);
+      const bClosing = parseInt(b['ClosingRank']);
       if (aClosing !== bClosing) return aClosing - bClosing;
-      const aOpening = parseInt(a['Opening-Rank']);
-      const bOpening = parseInt(b['Opening-Rank']);
+      const aOpening = parseInt(a['OpeningRank']);
+      const bOpening = parseInt(b['OpeningRank']);
       return aOpening - bOpening;
     });
     results['mains'].sort((a, b) => {
-      const aClosing = parseInt(a['Closing-Rank']);
-      const bClosing = parseInt(b['Closing-Rank']);
+      const aClosing = parseInt(a['ClosingRank']);
+      const bClosing = parseInt(b['ClosingRank']);
       if (aClosing !== bClosing) return aClosing - bClosing;
-      const aOpening = parseInt(a['Opening-Rank']);
-      const bOpening = parseInt(b['Opening-Rank']);
+      const aOpening = parseInt(a['OpeningRank']);
+      const bOpening = parseInt(b['OpeningRank']);
       return aOpening - bOpening;
     });
     const len = Math.min(reqlen, results['adv'].length + results['mains'].length); // Limit to top results
