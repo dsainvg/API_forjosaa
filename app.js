@@ -39,6 +39,14 @@ let dataLoaded = false;
 // Load and parse CSV data
 function loadCSVData(filePath) {
   return new Promise((resolve, reject) => {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.error(`CSV file not found at path: ${filePath}`);
+      console.error(`Current directory: ${__dirname}`);
+      console.error(`Available files: ${fs.readdirSync(__dirname).join(', ')}`);
+      return reject(new Error(`CSV file not found at path: ${filePath}`));
+    }
+    
     const results = [];
     
     fs.createReadStream(filePath)
@@ -49,6 +57,7 @@ function loadCSVData(filePath) {
         resolve(results);
       })
       .on('error', (error) => {
+        console.error(`Error reading CSV: ${error.message}`);
         reject(error);
       });
   });
@@ -104,7 +113,20 @@ async function initData() {
   if (dataLoaded) return;
   
   try {
-    const dataFile = path.join(__dirname, CSV_FILE_PATH);
+    console.log('Starting data initialization...');
+    console.log(`Current directory: ${__dirname}`);
+    console.log(`Looking for CSV file: ${CSV_FILE_PATH}`);
+    
+    // For Vercel deployment - handle both absolute and relative paths
+    let dataFile;
+    if (path.isAbsolute(CSV_FILE_PATH)) {
+      dataFile = CSV_FILE_PATH;
+    } else {
+      dataFile = path.join(__dirname, CSV_FILE_PATH);
+    }
+    
+    console.log(`Full path to data file: ${dataFile}`);
+    
     const startTime = Date.now();
     records = await loadCSVData(dataFile);
     const endTime = Date.now();
@@ -113,12 +135,17 @@ async function initData() {
     dataStats = calculateDataStats();
     dataLoaded = true;
     
-    console.log('Data initialized');
+    console.log('Data initialized successfully');
     console.log('Data loading time:', `${(endTime - startTime) / 1000} seconds`);
     console.log('Memory usage:', memoryUsage);
     console.log('Data stats:', dataStats);
   } catch (error) {
     console.error('Failed to initialize data:', error);
+    console.error(error.stack);
+    // Set dataLoaded to false so it will try again on next request
+    dataLoaded = false;
+    // Still throw the error to be caught by error handlers
+    throw error;
   }
 }
 
@@ -183,21 +210,27 @@ app.get('/api/programs', ensureDataLoaded, (req, res) => {
   res.json(programs);
 });
 
-app.get('/api/search', ensureDataLoaded, (req, res) => {
-  let results = [...records];
-  
-  // Filter by various parameters if provided
-  if (req.query.institute) {
-    results = results.filter(r => r.Institute.toLowerCase().includes(req.query.institute.toLowerCase()));
-  }
-  
-  if (req.query.program) {
-    results = results.filter(r => r['Academic-Program-Name'].toLowerCase().includes(req.query.program.toLowerCase()));
-  }
-  
-  if (req.query.quota) {
-    results = results.filter(r => r.Quota === req.query.quota);
-  }
+app.get('/api/search', async (req, res) => {
+  try {
+    // Ensure data is loaded before proceeding
+    if (!dataLoaded) {
+      await initData();
+    }
+    
+    let results = [...records];
+    
+    // Filter by various parameters if provided
+    if (req.query.institute) {
+      results = results.filter(r => r.Institute && r.Institute.toLowerCase().includes(req.query.institute.toLowerCase()));
+    }
+    
+    if (req.query.program) {
+      results = results.filter(r => r['Academic-Program-Name'] && r['Academic-Program-Name'].toLowerCase().includes(req.query.program.toLowerCase()));
+    }
+    
+    if (req.query.quota) {
+      results = results.filter(r => r.Quota === req.query.quota);
+    }
   
   if (req.query.gender) {
     results = results.filter(r => r.Gender === req.query.gender);
@@ -206,10 +239,10 @@ app.get('/api/search', ensureDataLoaded, (req, res) => {
   if (req.query.state) {
     results = results.filter(r => r.State && r.State.toLowerCase().includes(req.query.state.toLowerCase()));
   }
-  
-  if (req.query.rank) {
-    const rank = parseInt(req.query.rank);
+    if (req.query.value || req.query.rank) {
+    const rank = parseInt(req.query.value || req.query.rank);
     if (!isNaN(rank)) {
+      console.log(`Filtering by rank/value: ${rank}`);
       results = results.filter(r => {
         const openingRank = parseFloat(r['Opening-Rank']) || Infinity;
         const closingRank = parseFloat(r['Closing-Rank']) || 0;
@@ -229,13 +262,41 @@ app.get('/api/search', ensureDataLoaded, (req, res) => {
     limit,
     data: results.slice(start, end)
   });
+  } catch (error) {
+    console.error('Error in search endpoint:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined 
+    });
+  }
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: err.message,
+    stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined
+  });
+});
+
+// Handle 404
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `The requested endpoint ${req.path} does not exist`
+  });
 });
 
 // For local development
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    initData();
+    initData().catch(err => {
+      console.error('Failed to initialize data during startup:', err);
+    });
   });
 }
 
