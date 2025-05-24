@@ -1,14 +1,34 @@
+// Load environment variables from .env file in non-production environments
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require('express');
 const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const CSV_FILE_PATH = process.env.CSV_FILE_PATH || '2024_data0.csv';
 
-// Enable CORS for all routes
-app.use(cors());
+// Enable CORS with configuration from env variable
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*'
+}));
+
+// Apply rate limiting if configured
+if (process.env.RATE_LIMIT) {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT, 10), // limit each IP to defined number of requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  });
+  app.use(limiter);
+}
 
 // Store parsed data
 let records = [];
@@ -84,7 +104,7 @@ async function initData() {
   if (dataLoaded) return;
   
   try {
-    const dataFile = path.join(__dirname, '2024_data0.csv');
+    const dataFile = path.join(__dirname, CSV_FILE_PATH);
     const startTime = Date.now();
     records = await loadCSVData(dataFile);
     const endTime = Date.now();
