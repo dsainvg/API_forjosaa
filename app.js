@@ -258,11 +258,11 @@ app.get('/api/search', async (req, res) => {
     let advrankcorrected ;
     if (gend === "F"){
       mainrankcorrected = parseInt(mainrank*(100-3*tolaran)/100);
-      advrankcorrected = parseInt(mainrank*(100-3*tolaran)/100);
+      advrankcorrected = parseInt(adv*(100-3*tolaran)/100);
     }
     else{
       mainrankcorrected = parseInt(mainrank*(100-tolaran)/100);
-      advrankcorrected = parseInt(mainrank*(100-tolaran)/100);
+      advrankcorrected = parseInt(adv*(100-tolaran)/100);
     }
     
     const reservations = {
