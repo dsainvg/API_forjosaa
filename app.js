@@ -167,7 +167,8 @@ app.get('/', (req, res) => {
       '/api/records/count',
       '/api/records',
       '/api/institutes',
-      '/api/programs'
+      '/api/programs',
+      '/api/search'
     ]
   });
 });
@@ -272,14 +273,15 @@ app.get('/api/search', async (req, res) => {
               parseInt(row['ClosingRank']) >= valuemax;
       });
     }
-    results['mains'] = records.filter(row => {
-      const rowStateId = parseInt(row['StateId']);
-      return row['Type'] !== 'IIT' && 
-            (row['Quota'] === 'AI' || rowStateId === stid) &&
-            row['SeatType'] === reservations[resver] &&
-            (gend === 'F' || row['Gender'] === genders[gend]) &&
-            parseInt(row['ClosingRank']) >= valuemax;
-    });
+    if(adv>2000 || adv===0)
+      {results['mains'] = records.filter(row => {
+        const rowStateId = parseInt(row['StateId']);
+        return row['Type'] !== 'IIT' && 
+              (row['Quota'] === 'AI' || rowStateId === stid) &&
+              row['SeatType'] === reservations[resver] &&
+              (gend === 'F' || row['Gender'] === genders[gend]) &&
+              parseInt(row['ClosingRank']) >= valuemax;
+      });}
     
     
     // Sort results by ClosingRank (ascending), then OpeningRank (ascending) for tiebreakers
@@ -299,14 +301,15 @@ app.get('/api/search', async (req, res) => {
       const bOpening = parseInt(b['OpeningRank']);
       return aOpening - bOpening;
     });
-    const len = Math.min(reqlen, results['adv'].length + results['mains'].length); // Limit to top results
-    if (len === 0) {
+    const len1 = Math.min(reqlen, results['adv'].length); // Limit to top results
+    const len2 = Math.min(reqlen, results['mains'].length); // Limit to top results
+    if (len1 + len2 === 0) {
       return res.status(404).json({ error: 'No results found for the given criteria.' });
     }
     // Return top results
     return res.json({
-      adv: results['adv'].slice(0, len),
-      mains: results['mains'].slice(0, len)
+      adv: results['adv'].slice(0, len1),
+      mains: results['mains'].slice(0, len2)
     });
   } catch (error) {
     console.error('Error in search endpoint:', error);
