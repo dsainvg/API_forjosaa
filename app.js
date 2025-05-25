@@ -295,15 +295,14 @@ app.get('/api/search', async (req, res) => {
               parseInt(row['ClosingRank']) >= advrankcorrected;
       });
     }
-    if(adv>2000 || adv===0)
-      {results['mains'] = records.filter(row => {
+    results['mains'] = records.filter(row => {
         const rowStateId = parseInt(row['StateId']);
         return row['Type'] !== 'IIT' && 
               (row['Quota'] === 'AI' || rowStateId === stid) &&
               row['SeatType'] === reservations[resver] &&
               (gend === 'F' || row['Gender'] === genders[gend]) &&
               parseInt(row['ClosingRank']) >= mainrankcorrected;
-      });}
+      });
     
     
     // Sort results by ClosingRank (ascending), then OpeningRank (ascending) for tiebreakers
