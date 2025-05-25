@@ -219,8 +219,8 @@ app.get('/api/check', async (req, res) => {
     if (!id) {
       return res.status(400).json({ error: 'Please provide an ID to check.' });
     }
-    const result = records.find(r => r['Id'] === id);
-    if (!result) {
+    const result = records.filter(r => r['Id'] === id);
+    if (result.length === 0) {
       return res.status(404).json({ error: 'Record not found.' });
     }
     return res.json(result);
