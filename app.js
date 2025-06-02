@@ -241,7 +241,7 @@ app.get('/api/search', async (req, res) => {
     const gend = req.query.gend || 'M';
     const stid = req.query.stid !== undefined ? parseInt(req.query.stid) : 0;
     const adv = req.query.adv !== undefined ? parseInt(req.query.adv) : 0;
-    const tolaran = req.query.tolaran !== undefined ? parseFloat(req.query.tolaran) : 2.5;
+    const tolaran = req.query.tolaran !== undefined ? parseInt(req.query.tolaran) : 2;
     const main = req.query.main;
     const reqlen = req.query.reqlen !== undefined ? parseInt(req.query.reqlen) : 20;
 
