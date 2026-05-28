@@ -13,19 +13,12 @@ You can run `npm install` followed by running `node app.js`.
 By default, the API binds to port 3000 and serves from `2024_data0.csv`.
 
 ## Using Predicted 2026 Data
-This repository includes a migration script that transforms the `unipillar-backend` predicted datasets into the standardized format this API uses.
 
-1. Ensure the predicted dataset (`JOSAA_2026_Predicted_Cutoffs.csv`) is present in the root folder alongside `2024_data0.csv`.
-2. Run the provided Python migration script (requires `pandas`):
-   `pip install pandas`
-   `python scripts/migrate_data.py`
-   *This outputs a clean `2026_Predicted_Cutoffs.csv`.*
+This repository includes the migrated predicted 2026 cutoff dataset.
 
-3. Start the API using the newly processed dataset:
+To start the API using the newly processed predicted dataset:
    `export CSV_FILE_PATH="2026_Predicted_Cutoffs.csv"`
    `node app.js`
-
-*See `scripts/README.md` for complete mapping and integration details.*
 
 ## Endpoints
 - `/api/records` - Fetch raw records with pagination.
