@@ -32,3 +32,9 @@ node_modules/
 
 # Vercel
 .vercel
+node_modules/
+package-lock.json
+__pycache__/
+*.csv
+!API_forjosaa/data/predicted_cutoffs_cleaned.csv
+!unipillar-backend/data/JOSAA_2026_Predicted_Cutoffs.csv
