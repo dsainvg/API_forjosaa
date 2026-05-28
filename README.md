@@ -10,15 +10,7 @@ This is a comprehensive backend API serving JOSAA cutoff dataset efficiently.
 ## Quick Start
 You can run `npm install` followed by running `node app.js`.
 
-By default, the API binds to port 3000 and serves from `2024_data0.csv`.
-
-## Using Predicted 2026 Data
-
-This repository includes the migrated predicted 2026 cutoff dataset.
-
-To start the API using the newly processed predicted dataset:
-   `export CSV_FILE_PATH="2026_Predicted_Cutoffs.csv"`
-   `node app.js`
+By default, the API binds to port 3000 and serves from `2026_Predicted_Cutoffs.csv`.
 
 ## Endpoints
 - `/api/records` - Fetch raw records with pagination.
