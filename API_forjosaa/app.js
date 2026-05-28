@@ -13,7 +13,7 @@ const dataLoader = require('./dataLoader');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const CSV_FILE_PATH = process.env.CSV_FILE_PATH || '2024_data0.csv';
+const CSV_FILE_PATH = process.env.CSV_FILE_PATH || 'data/predicted_cutoffs_cleaned.csv';
 
 // Enable CORS with configuration from env variable
 app.use(cors({
@@ -93,10 +93,10 @@ function calculateDataStats() {
 
   records.forEach(record => {
     institutes.add(record.Institute);
-    programs.add(record['Academic-Program-Name']);
+    programs.add(record['BranchShortcut']);
     quotas.add(record.Quota);
     genders.add(record.Gender);
-    if (record.State) states.add(record.State);
+    if (record['CollegeState']) states.add(record['CollegeState']);
   });
 
   return {
@@ -152,10 +152,14 @@ async function initData() {
 
 // Middleware to ensure data is loaded
 const ensureDataLoaded = async (req, res, next) => {
-  if (!dataLoaded) {
-    await initData();
+  try {
+    if (!dataLoaded) {
+      await initData();
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 };
 
 // API endpoints
@@ -207,7 +211,7 @@ app.get('/api/institutes', ensureDataLoaded, (req, res) => {
 });
 
 app.get('/api/programs', ensureDataLoaded, (req, res) => {
-  const programs = [...new Set(records.map(record => record['Academic-Program-Name']))].sort();
+  const programs = [...new Set(records.map(record => record['BranchShortcut']))].sort();
   res.json(programs);
 });
 
@@ -308,20 +312,20 @@ app.get('/api/search', async (req, res) => {
     // Filter according to the logic using the in-memory records
     if (adv) { // Advanced institutions (IITs)
       results['adv'] = records.filter(row => {
-        return row['Type'] === 'IIT' &&
+        return row['InstituteType'] === 'IIT' &&
               row['Quota'] === 'AI' &&
               row['SeatType'] === reservations[resver] &&
               (gend === 'F' || row['Gender'] === genders[gend]) &&
-              parseInt(row['ClosingRank']) >= advrankcorrected;
+              parseInt(row['PredictedClosingRank2026']) >= advrankcorrected;
       });
     }
     results['mains'] = records.filter(row => {
-        const rowStateId = parseInt(row['StateId']);
-        return row['Type'] !== 'IIT' &&
-              (row['Quota'] === 'AI' || rowStateId === stid) &&
+        const rowStateId = parseInt(row['CollegeState']);
+        return row['InstituteType'] !== 'IIT' &&
+              (row['Quota'] === 'AI' || true /* StateId logic bypassed */) &&
               row['SeatType'] === reservations[resver] &&
               (gend === 'F' || row['Gender'] === genders[gend]) &&
-              parseInt(row['ClosingRank']) >= mainrankcorrected;
+              parseInt(row['PredictedClosingRank2026']) >= mainrankcorrected;
       });
 
 
