@@ -334,16 +334,16 @@ app.get('/api/search', async (req, res) => {
       const aClosing = parseInt(a['ClosingRank']);
       const bClosing = parseInt(b['ClosingRank']);
       if (aClosing !== bClosing) return aClosing - bClosing;
-      const aOpening = parseInt(a['OpeningRank']);
-      const bOpening = parseInt(b['OpeningRank']);
+      const aOpening = parseInt(a['PredictedOpeningRank']);
+      const bOpening = parseInt(b['PredictedOpeningRank']);
       return aOpening - bOpening;
     });
     results['mains'].sort((a, b) => {
       const aClosing = parseInt(a['ClosingRank']);
       const bClosing = parseInt(b['ClosingRank']);
       if (aClosing !== bClosing) return aClosing - bClosing;
-      const aOpening = parseInt(a['OpeningRank']);
-      const bOpening = parseInt(b['OpeningRank']);
+      const aOpening = parseInt(a['PredictedOpeningRank']);
+      const bOpening = parseInt(b['PredictedOpeningRank']);
       return aOpening - bOpening;
     });
     const len1 = Math.min(reqlen, results['adv'].length); // Limit to top results
