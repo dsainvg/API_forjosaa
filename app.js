@@ -12,7 +12,7 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const CSV_FILE_PATH = process.env.CSV_FILE_PATH || '2024_data0.csv';
+const CSV_FILE_PATH = process.env.CSV_FILE_PATH || '2025_data.csv';
 
 // Enable CORS with configuration from env variable
 app.use(cors({
